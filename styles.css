@@ -1,0 +1,113 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+header {
+    background-color: #333;
+    color: white;
+    padding: 10px 0;
+    text-align: center;
+}
+
+nav {
+    background-color: #444;
+}
+
+nav ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+}
+
+nav ul li {
+    position: relative;
+}
+
+nav ul li a {
+    padding: 15px 20px;
+    display: block;
+    color: white;
+    text-decoration: none;
+}
+
+nav ul li a:hover {
+    background-color: #555;
+}
+
+nav ul ul {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #444;
+    display: none;
+    list-style: none;
+    min-width: 160px;
+}
+
+nav ul li:hover>ul {
+    display: block;
+}
+
+nav ul ul li a {
+    padding: 10px 20px;
+    white-space: nowrap;
+}
+
+nav ul ul li a:hover {
+    background-color: #555;
+}
+
+.container {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 20px;
+}
+
+.graph-area,
+.data-selection,
+.message-area,
+.table-area {
+    flex: 1 1 100%;
+    margin-bottom: 20px;
+    padding: 20px;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+}
+
+@media(min-width: 768px) {
+
+    .data-selection,
+    .message-area {
+        flex: 1;
+    }
+
+    .table-area,
+    .graph-area {
+        flex: 1 1 100%;
+    }
+}
+
+footer {
+    background-color: #333;
+    color: white;
+    text-align: center;
+    padding: 5px 0;
+    position: fixed;
+    width: 100%;
+    bottom: 0;
+}
+
+.container {
+    margin-bottom: 60px;
+}
+
+input[type=radio],
+input.radio {
+    float: left;
+    clear: none;
+    margin: 2px 10px 0 2px;
+}

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[CPS*5745*02] Project 1</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script defer src="scripts.js"></script>
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+</head>
+
+<body>
+
+    <script>
+        window.onpageshow = function (event) {
+            if (event.persisted) {
+                window.location.reload(true);
+            }
+        };
+    </script>
+
+    <header>
+        <h1>[CPS*5745*02] Project 1 - Joseph Tomasello</h1>
+    </header>
+    <nav>
+        <ul>
+            <li><a>File</a>
+                <ul>
+                    <li><a onclick="connectToDB()">Login to DB</a></li>
+                    <li><a onclick="loadStockData()">Load Stock_prices Data</a></li>
+                    <li><a onclick="logoutDB()">Logout DB</a></li>
+                    <li><a onclick="exitApplication()">Exit</a></li>
+                </ul>
+            </li>
+            <li><a>View</a>
+                <ul>
+                    <li><a onclick="showLineChartOptions()">Line Chart</a></li>
+                    <li><a onclick="showAreaChartOptions()">Area Chart</a></li>
+                </ul>
+            </li>
+            <li><a>Help</a>
+                <ul>
+                    <li><a onclick="showLoginInfo()">Login Info</a></li>
+                    <li><a onclick="showDeveloperInfo()">Developer Info</a></li>
+                    <li><a onclick="showBrowserOSInfo()">Client</a></li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+
+
+    <div class="container">
+        <!-- Data selection section -->
+        <div class="data-selection">
+            <h2>Data Selection</h2>
+            <form id="dataForm">
+                <label for="symbolChoice" id="symbolLabel" style="display: none;">Choose Stock Symbol:</label>
+                <select id="symbolChoice" name="symbolChoice" style="display: none;" onchange="loadAvailableMonths()">
+                    <option value="select" selected disabled>Select Stock Symbol</option>
+                    <!-- Dynamically populate available stock symbols here -->
+                </select>
+                <br>
+
+                <label for="monthChoice" id="monthLabel" style="display: none;">Choose Year-Month:</label>
+                <select id="monthChoice" name="monthChoice" style="display: none;" onchange="showGenerateGraphButton()">
+                    <option value="select" selected disabled>Select Month/Year</option>
+                    <!-- Dynamically populate available months/years here based on symbol -->
+                </select>
+                <br>
+
+                <!-- Add Generate Graph button -->
+                <button type="button" id="generateGraphButton" style="display: none;" onclick="generateGraph()">Generate
+                    Line Graph</button>
+                <!-- Add new dropdowns for selecting 2 stock symbols for the Area Chart -->
+                <label for="stockSymbol1" id="stockSymbol1Label" style="display: none;">Select First Stock:</label>
+                <select id="stockSymbol1" name="stockSymbol1" style="display: none;">
+                    <!-- Options will be populated dynamically -->
+                </select>
+                <br>
+
+                <label for="stockSymbol2" id="stockSymbol2Label" style="display: none;">Select Second Stock:</label>
+                <select id="stockSymbol2" name="stockSymbol2" style="display: none;">
+                    <!-- Options will be populated dynamically -->
+                </select>
+                <br>
+
+                <!-- Add Generate Area Chart button -->
+                <button type="button" id="generateAreaChartButton" style="display: none;"
+                    onclick="generateAreaChart()">Generate Area Chart</button>
+            </form>
+        </div>
+
+        <div class="message-area">
+            <h2>Message Area</h2>
+            <div id="message"></div>
+            <!-- Dynamically populate with messages based on user actions -->
+        </div>
+
+        <div class="graph-area">
+            <h2>Graph Area</h2>
+            <div id="stockChart"></div>
+        </div>
+
+        <!-- Graph and form areas here -->
+        <div class="table-area">
+            <h2>Table Area</h2>
+            <div id="stockPricesTable"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Joseph Tomasello &copy; 2024</p>
+    </footer>
+
+    <div id="loginModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5);">
+        <div style="background-color:white; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 300px;">
+            <h2>Login</h2>
+            <label for="login">Login:</label>
+            <input type="text" id="login" required>
+            <br><br>
+            <label for="password">Password:</label>
+            <input type="password" id="password" required>
+            <br><br>
+            <button id="submitLogin">Login</button>
+            <button id="cancelLogin">Cancel</button>
+        </div>
+    </div>
+
+</body>
+
+</html>
