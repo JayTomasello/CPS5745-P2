@@ -12,6 +12,7 @@ $query1 = "SELECT YEAR(date) as year,
            WHERE symbol = '$stock1'
            GROUP BY YEAR(date)";
 
+// Query to get the first and last closing prices for stock 2
 $query2 = "SELECT YEAR(date) as year, 
                   MIN(date) as first_date, 
                   MAX(date) as last_date

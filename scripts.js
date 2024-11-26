@@ -30,7 +30,7 @@ function connectToDB() {
                             .then(response => response.json())
                             .then(data => {
                                 if (data.status === 'success') {
-                                    displayMessage(data.message); // Display success message
+                                    displayWelcomeMessage(data.message); // Display success message
                                     isLoggedIn = true; // Set logged in flag to true
                                     document.getElementById('loginModal').style.display = 'none'; // Close modal
                                 } else if (data.status === 'already_logged_in') {
@@ -72,7 +72,7 @@ function checkLoginStatus() {
             if (data.status !== 'error') {
                 // User is logged in
                 isLoggedIn = true;
-                displayMessage(`Welcome back, ${data.name}!`); // Show welcome message
+                displayWelcomeMessage(`Welcome back, ${data.name}!`); // Show welcome message
             } else {
                 // User is not logged in
                 isLoggedIn = false;
@@ -108,7 +108,12 @@ function loadStockData() {
         .then(data => {
             drawStockPricesTable(data);
             loadStockSymbols();
-            displayMessage('Stock_prices data successfully loaded.');
+
+            // Count the number of rows in the data
+            const rowCount = data.length;
+
+            displayMessage(`US Stock Prices data successfully loaded - ${rowCount} records`);
+            
             isDataLoaded = true;
 
             // Show the radio buttons after dataset is loaded
@@ -590,12 +595,72 @@ function drawStockChart(stockData) {
     });
 }
 
-function displayMessage(message) {
+function displayWelcomeMessage(message) {
     const messageDiv = document.getElementById('message');
     const newMessage = document.createElement('p'); // Create a new paragraph for the message
     newMessage.textContent = message;
+    newMessage.style.fontWeight = 'bold';
     messageDiv.appendChild(newMessage); // Append the new message under previous messages
 }
+
+// Displays descriptive messages in the message area based on user actions and page events
+function displayMessage(content) {
+    const messageDiv = document.getElementById('message');
+
+    // Create a new container for the message and timestamp
+    const messageContainer = document.createElement('div');
+    messageContainer.style.marginTop = '20px'; // Add spacing between messages
+    messageContainer.style.marginBottom = '20px';
+
+    // Generate timestamp
+    const timestamp = Date.now(); // Store as a raw timestamp
+
+    // Create the timestamp element
+    const timeSpan = document.createElement('span');
+    timeSpan.dataset.timestamp = timestamp; // Store the raw timestamp
+    timeSpan.textContent = new Date(timestamp).toLocaleString(); // Display formatted
+    timeSpan.style.fontWeight = 'bold';
+    timeSpan.style.color = 'green'; // Initially set the color to green
+    timeSpan.style.display = 'block';
+
+    // Create the message element
+    const messageText = document.createElement('p');
+    messageText.textContent = content;
+    messageText.style.margin = '5px 0 0';
+
+    // Append the timestamp and message to the container
+    messageContainer.appendChild(timeSpan);
+    messageContainer.appendChild(messageText);
+
+    // Append the container to the message area
+    messageDiv.appendChild(messageContainer);
+
+    // Scroll to the bottom of the message area
+    messageDiv.scrollTop = messageDiv.scrollHeight;
+}
+
+// Function to monitor and update message styles
+function monitorMessages() {
+    const messageDiv = document.getElementById('message');
+    const timestamps = messageDiv.querySelectorAll('span'); // Select all timestamp spans
+
+    timestamps.forEach((timeSpan) => {
+        const timestamp = parseInt(timeSpan.dataset.timestamp, 10); // Parse raw timestamp
+        const currentTime = Date.now();
+        const timeDifference = (currentTime - timestamp) / (1000 * 60 * 60); // Difference in hours
+
+        if (timeDifference > 1) {
+            timeSpan.style.color = 'red';
+            timeSpan.textContent = `[Data is more than ${Math.floor(timeDifference)} hour(s) old] ${new Date(timestamp).toLocaleString()}`;
+        } else {
+            timeSpan.style.color = 'green'; // Reset to green if less than 1 hour
+            timeSpan.textContent = new Date(timestamp).toLocaleString();
+        }
+    });
+}
+
+// Set up periodic monitoring
+setInterval(monitorMessages, 60000); // Check every 1 minute
 
 function logoutDB() {
     fetch('logout.php')
