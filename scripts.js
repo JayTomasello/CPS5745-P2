@@ -434,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
     hideLineChartOptions();
 });
 
-// OPTIMIZE: Replace with JS DataTable
+// OPTIMIZE: Attempt to replace with JS DataTable
 function drawStockPricesTable(stockPrices) {
     google.charts.load('current', {
         packages: ['table']
@@ -700,30 +700,38 @@ function monitorMessages() {
 setInterval(monitorMessages, 60000); // Check every 1 minute
 
 function logoutDB() {
-    fetch('logout.php')
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                // Clear the session and UI
-                clearMessages();
-                clearTablesAndCharts();
-                clearDataSelection();
-                isLoggedIn = false;
-                isDataLoaded = false;
+    // Ask the user for confirmation before exiting
+    const userConfirmed = confirm("Are you sure you want to logout?");
 
-                // Clear login and password fields for security
-                clearLoginFields();
+    if (userConfirmed) {
+        fetch('logout.php')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Clear the session and UI
+                    clearMessages();
+                    clearTablesAndCharts();
+                    clearDataSelection();
+                    isLoggedIn = false;
+                    isDataLoaded = false;
 
-                // Display a pop-up confirming the logout
-                alert(data.message);
-            } else if (data.status === 'error') {
-                // User is not logged in, display the appropriate message
-                alert(data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error during logout:', error);
-        });
+                    // Clear login and password fields for security
+                    clearLoginFields();
+
+                    // Display a pop-up confirming the logout
+                    alert(data.message);
+                } else if (data.status === 'error') {
+                    // User is not logged in, display the appropriate message
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error during logout:', error);
+            });
+    } else {
+        // If the user cancels, simply return without doing anything
+        return;
+    }
 }
 
 // Function to clear login and password fields when modal opens for security
