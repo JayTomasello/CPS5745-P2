@@ -22,9 +22,8 @@ $result = $stmt->get_result();
 if ($result->num_rows > 0) {
     $user = $result->fetch_assoc();
     if ($user['password'] === $password) {
-        // Successful login, create session and cookie
+        // Successful login, create session
         $_SESSION['user'] = $user;
-        setcookie('user', $user['name'], time() + (86400 * 30), "/"); // 30 days
         echo json_encode(['status' => 'success', 'message' => 'Login successful. Welcome, ' . $user['name'] . '!']);
     } else {
         // Incorrect password

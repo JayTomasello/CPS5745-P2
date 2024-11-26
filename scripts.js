@@ -90,18 +90,41 @@ document.addEventListener('DOMContentLoaded', () => {
     hideRadioButtons();
 });
 
+// Function to check if the user is logged in and return a boolean value
+async function isUserLoggedIn() {
+    try {
+        const response = await fetch('login_info.php');
+        const data = await response.json();
+        if (data.status !== 'error') {
+            // User is logged in
+            return true;
+        } else {
+            // User is not logged in
+            return false;
+        }
+    } catch (error) {
+        console.error('Error checking login status:', error);
+        return false;
+    }
+}
+
 // Load stock data only if logged in
-function loadStockData() {
-    if (!isLoggedIn) {
+async function loadStockData() {
+    const loggedIn = await isUserLoggedIn(); // Check login status asynchronously
+    if (!loggedIn) {
         alert("Please login to load a dataset.");
+        clearTablesAndCharts();
+        clearDataSelection();
+        hideLineChartOptions();
         return;
     }
+
     clearTablesAndCharts();
     clearDataSelection();
     hideLineChartOptions();
 
-    // Display loading message in stockPricesTable div
-    document.getElementById('stockPricesTable').innerHTML = '<p>Loading table data...</p>';
+    // Display loading message in the table div
+    document.getElementById('table').innerHTML = '<p>Loading table data...</p>';
 
     fetch('get-all-stock-prices.php')
         .then(response => response.json())
@@ -113,7 +136,7 @@ function loadStockData() {
             const rowCount = data.length;
 
             displayMessage(`US Stock Prices data successfully loaded - ${rowCount} records`);
-            
+
             isDataLoaded = true;
 
             // Show the radio buttons after dataset is loaded
@@ -121,12 +144,13 @@ function loadStockData() {
         })
         .catch(error => {
             console.error('Error loading stock prices:', error);
-            document.getElementById('stockPricesTable').innerHTML = '<p>Error loading table data.</p>';
+            document.getElementById('table').innerHTML = '<p>Error loading table data.</p>';
         });
 }
 
 // Show Line Chart options if radio button is selected
 function showLineChartOptions() {
+    // TODO: Add existence check
     const selectedOption = document.querySelector('input[name="dataOption"]:checked');
 
     if (!selectedOption && !isLoggedIn) {
@@ -144,6 +168,7 @@ function showLineChartOptions() {
         return;
     }
 
+    // TODO: Replace with dynamically added symbol choice dropdown
     if (selectedOption.value === 'openPrice') {
         document.getElementById('symbolChoice').style.display = 'block';
         document.getElementById('symbolLabel').style.display = 'block';
@@ -157,6 +182,7 @@ function showLineChartOptions() {
 }
 
 function showAreaChartOptions() {
+    // TODO: Add existence check
     const selectedOption = document.querySelector('input[name="dataOption"]:checked');
 
     if (!selectedOption && !isLoggedIn) {
@@ -178,14 +204,15 @@ function showAreaChartOptions() {
         // Hide the radio buttons since we are focusing on Area Chart for growth rate
         hideRadioButtons();
 
+        // TODO: Replace with dynamically added symbol choice dropdowns
         // Show the stock selection dropdowns
         document.getElementById('stockSymbol1').style.display = 'block';
         document.getElementById('stockSymbol1Label').style.display = 'block';
         document.getElementById('stockSymbol2').style.display = 'block';
         document.getElementById('stockSymbol2Label').style.display = 'block';
 
-        // Populate stock symbol dropdowns
-        loadStockSymbols(); // Populate the stock symbol options from the database
+        // Populate stock symbol dropdowns options from the database
+        loadStockSymbols();
     }
 
     if (selectedOption.value === 'openPrice') {
@@ -211,6 +238,7 @@ function fetchYearlyGrowth(stock1, stock2) {
 }
 
 function drawAreaChart(growthData) {
+    // TODO: Add existence check
     const stock1 = document.getElementById('stockSymbol1').value;
     const stock2 = document.getElementById('stockSymbol2').value;
 
@@ -257,7 +285,7 @@ function drawAreaChart(growthData) {
             height: 600 // Adjust height of the chart
         };
 
-        const chart = new google.visualization.AreaChart(document.getElementById('stockChart'));
+        const chart = new google.visualization.AreaChart(document.getElementById('graph'));
         chart.draw(data, options);
     });
     // Create a new div element to display the information
@@ -322,6 +350,7 @@ function hideRadioButtons() {
     // Remove Open Price Radio Button and its Label
     const openPriceRadio = document.getElementById('openPrice');
     const openPriceLabel = document.querySelector('label[for="openPrice"]'); // Target label using 'for' attribute
+
     if (openPriceRadio) {
         form.removeChild(openPriceRadio);
     }
@@ -332,6 +361,7 @@ function hideRadioButtons() {
     // Remove Growth Rate Radio Button and its Label
     const growthRateRadio = document.getElementById('growthRate');
     const growthRateLabel = document.querySelector('label[for="growthRate"]'); // Target label using 'for' attribute
+
     if (growthRateRadio) {
         form.removeChild(growthRateRadio);
     }
@@ -340,6 +370,7 @@ function hideRadioButtons() {
     }
 }
 
+// TODO: Replace with removal of symbol choice dropdown + month dropdown
 // Hide radio buttons initially or when not logged in
 function hideLineChartOptions() {
     document.getElementById('symbolChoice').style.display = 'none';
@@ -349,6 +380,7 @@ function hideLineChartOptions() {
     document.getElementById('generateGraphButton').style.display = 'none';
 }
 
+// TODO: Replace with removal of symbol choice dropdown
 function hideAreaChartOptions() {
     document.getElementById('stockSymbol1').style.display = 'none';
     document.getElementById('stockSymbol1Label').style.display = 'none';
@@ -383,7 +415,7 @@ function showLoginInfo() {
 }
 
 function showDeveloperInfo() {
-    const devInfo = `Name: Joseph Tomasello\nClass ID: CPS*5745*02\nProject Date (Part 1): 10/23/2024`;
+    const devInfo = `Name: Joseph Tomasello\nClass ID: CPS*5745*02\nProject Date (Part 2): 12/04/2024`;
     alert(devInfo);
 }
 
@@ -396,11 +428,13 @@ function showBrowserOSInfo() {
     alert(fullInfo);
 }
 
+// TODO: Replace with existence check
 document.addEventListener('DOMContentLoaded', () => {
     // Initially hide the symbol, month/year dropdowns, and generate graph button
     hideLineChartOptions();
 });
 
+// OPTIMIZE: Replace with JS DataTable
 function drawStockPricesTable(stockPrices) {
     google.charts.load('current', {
         packages: ['table']
@@ -431,7 +465,7 @@ function drawStockPricesTable(stockPrices) {
             ]);
         });
 
-        const table = new google.visualization.Table(document.getElementById('stockPricesTable'));
+        const table = new google.visualization.Table(document.getElementById('table'));
         table.draw(googleData, {
             showRowNumber: true,
             width: '100%',
@@ -443,6 +477,8 @@ function drawStockPricesTable(stockPrices) {
     });
 }
 
+// TODO: Split function to load the stock symbol dropdowns for the line and area charts separately
+// Function to load all the available stock symbols for the line and area charts
 function loadStockSymbols() {
     // Fetch available stock symbols and populate the dropdowns
     fetch('get-stock-symbols.php')
@@ -590,11 +626,12 @@ function drawStockChart(stockData) {
             height: 600
         };
 
-        const chart = new google.visualization.LineChart(document.getElementById('stockChart'));
+        const chart = new google.visualization.LineChart(document.getElementById('graph'));
         chart.draw(googleData, options);
     });
 }
 
+// Function to display login status message
 function displayWelcomeMessage(message) {
     const messageDiv = document.getElementById('message');
     const newMessage = document.createElement('p'); // Create a new paragraph for the message
@@ -689,31 +726,34 @@ function logoutDB() {
         });
 }
 
-// Clear login and password fields when modal opens for security
+// Function to clear login and password fields when modal opens for security
 function clearLoginFields() {
     document.getElementById('login').value = '';
     document.getElementById('password').value = '';
 }
 
+// Function to clear all messages
 function clearMessages() {
     const messageDiv = document.getElementById('message');
     messageDiv.innerHTML = ''; // Clear all messages in the message-area
 }
 
+// Function to clear any active tables + charts
 function clearTablesAndCharts() {
-    const stockPricesTable = document.getElementById('stockPricesTable');
-    const stockChart = document.getElementById('stockChart');
+    const table = document.getElementById('table');
+    const graph = document.getElementById('graph');
     const infoDiv = document.getElementById("calculationInfo");
 
     if (infoDiv) {
         infoDiv.remove(); // Remove the div if it exists
     }
 
-    // Clear any existing stock prices table and chart
-    if (stockPricesTable) stockPricesTable.innerHTML = '';
-    if (stockChart) stockChart.innerHTML = '';
+    // Clear any existing tables and charts
+    if (table) table.innerHTML = '';
+    if (graph) graph.innerHTML = '';
 }
 
+// Function to clear data selection area
 function clearDataSelection() {
     const symbolChoice = document.getElementById('symbolChoice');
     const monthChoice = document.getElementById('monthChoice');
@@ -735,6 +775,7 @@ function clearDataSelection() {
     generateGraphButton.style.display = 'none';
 }
 
+// Function to generate an area chart based on user's selection of 2 stock symbols
 function generateAreaChart() {
     const stock1 = document.getElementById('stockSymbol1').value;
     const stock2 = document.getElementById('stockSymbol2').value;
@@ -760,6 +801,7 @@ function generateAreaChart() {
 document.getElementById('stockSymbol1').addEventListener('change', checkStocksSelected);
 document.getElementById('stockSymbol2').addEventListener('change', checkStocksSelected);
 
+// TODO: Replace with check for element existence
 function checkStocksSelected() {
     const stock1 = document.getElementById('stockSymbol1').value;
     const stock2 = document.getElementById('stockSymbol2').value;
@@ -772,27 +814,36 @@ function checkStocksSelected() {
     }
 }
 
+// Function to log user out of system (if they are logged in) + close web page
 function exitApplication() {
-    // Attempt to clear session and cookies via logout.php
-    fetch('logout.php')
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                // Notify the user that the session and cookies have been cleared
-                alert(data.message);
-            } else if (data.status === 'error') {
-                // Notify the user they are not logged in
-                console.log(data.message);
-            }
-        })
-        .catch(error => console.error('Error during logout:', error))
-        .finally(() => {
-            // Always attempt to close the browser tab/window
-            window.close();
+    // Ask the user for confirmation before exiting
+    const userConfirmed = confirm("Are you sure you want to logout and exit this page?");
 
-            // Fallback to a blank page if the browser prevents closing the window
-            setTimeout(() => {
-                window.location.href = 'about:blank';
-            }, 1000); // Add a small delay to show alert
-        });
+    if (userConfirmed) {
+        // Attempt to clear session via logout.php
+        fetch('logout.php')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Notify the user that the session has been cleared
+                    alert(data.message);
+                } else if (data.status === 'error') {
+                    // Notify the user they are not logged in
+                    console.log(data.message);
+                }
+            })
+            .catch(error => console.error('Error during logout:', error))
+            .finally(() => {
+                // Always attempt to close the browser tab/window
+                window.close();
+
+                // Fallback to a blank page if the browser prevents closing the window
+                setTimeout(() => {
+                    window.location.href = 'about:blank';
+                }, 1000); // Add a small delay to show alert
+            });
+    } else {
+        // If the user cancels, simply return without doing anything
+        return;
+    }
 }

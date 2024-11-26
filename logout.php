@@ -9,9 +9,6 @@ if (isset($_SESSION['user']) || isset($_COOKIE['user'])) {
     // Destroy the session
     session_destroy();
 
-    // Expire the cookie by setting its expiration date in the past
-    setcookie('user', '', time() - 3600, "/");
-
     // Prevent back button login by expiring any cached login page
     header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
     header("Cache-Control: post-check=0, pre-check=0", false);
