@@ -1,4 +1,4 @@
-# CPS*5745 - Project Phase 2
+# CPS*5745 - Project Phase 2 (Work in Progress)
 Objective: TBA
 
 Languages: MySQL, HTML, CSS, JavaScript (JS), and PHP
