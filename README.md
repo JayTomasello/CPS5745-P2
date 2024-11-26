@@ -3,6 +3,7 @@ Objective: TBA
 
 Languages: MySQL, HTML, CSS, JavaScript (JS), and PHP
 
+## Try it out!
 URL: https://obi.kean.edu/~tomaselj@kean.edu/CPS5745/project_2/index.html
 
 ## Sample Login
