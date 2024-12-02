@@ -328,7 +328,6 @@ function fetchYearlyGrowth(stock1, stock2) {
 }
 
 function drawAreaChart(growthData) {
-    // TODO: Add existence check
     const stock1 = document.getElementById('stockSymbol1').value;
     const stock2 = document.getElementById('stockSymbol2').value;
 
@@ -461,12 +460,16 @@ function hideRadioButtons() {
 }
 
 function hideLineChartOptions() {
+    // List of elements to remove
     const elementsToRemove = [
         'symbolChoice',
         'symbolLabel',
+        'symbolBreak', // Line break after symbolChoice
         'monthChoice',
         'monthLabel',
-        'generateGraphButton'
+        'monthBreak', // Line break after monthChoice
+        'generateGraphButton',
+        'generateBreak' // Line break after generateGraphButton
     ];
 
     // Remove specified elements
@@ -477,7 +480,7 @@ function hideLineChartOptions() {
         }
     });
 
-    // Remove all line breaks associated with line chart options
+    // Remove any additional line breaks associated with line chart options
     const lineBreaks = document.querySelectorAll('.lineChartBreak');
     lineBreaks.forEach(br => br.remove());
 }
@@ -539,12 +542,6 @@ function showBrowserOSInfo() {
 
     alert(fullInfo);
 }
-
-// TODO: Replace with existence check
-document.addEventListener('DOMContentLoaded', () => {
-    // Initially hide the symbol, month/year dropdowns, and generate graph button
-    hideLineChartOptions();
-});
 
 function drawStockPricesTable(stockPrices, pageSize = 20) {
     console.log("Rendering Stock Prices DataTable with page size:", pageSize);
