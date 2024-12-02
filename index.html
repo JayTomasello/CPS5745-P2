@@ -74,39 +74,7 @@
         <div class="data-selection">
             <h2>Data Selection</h2>
             <form id="dataForm">
-                <label for="symbolChoice" id="symbolLabel" style="display: none;">Choose Stock Symbol:</label>
-                <select id="symbolChoice" name="symbolChoice" style="display: none;" onchange="loadAvailableMonths()">
-                    <option value="select" selected disabled>Select Stock Symbol</option>
-                    <!-- Dynamically populate available stock symbols here -->
-                </select>
                 <br>
-
-                <label for="monthChoice" id="monthLabel" style="display: none;">Choose Year-Month:</label>
-                <select id="monthChoice" name="monthChoice" style="display: none;" onchange="showGenerateGraphButton()">
-                    <option value="select" selected disabled>Select Month/Year</option>
-                    <!-- Dynamically populate available months/years here based on symbol -->
-                </select>
-                <br>
-
-                <!-- Add Generate Graph button -->
-                <button type="button" id="generateGraphButton" style="display: none;" onclick="generateGraph()">Generate
-                    Line Graph</button>
-                <!-- Add new dropdowns for selecting 2 stock symbols for the Area Chart -->
-                <label for="stockSymbol1" id="stockSymbol1Label" style="display: none;">Select First Stock:</label>
-                <select id="stockSymbol1" name="stockSymbol1" style="display: none;">
-                    <!-- Options will be populated dynamically -->
-                </select>
-                <br>
-
-                <label for="stockSymbol2" id="stockSymbol2Label" style="display: none;">Select Second Stock:</label>
-                <select id="stockSymbol2" name="stockSymbol2" style="display: none;">
-                    <!-- Options will be populated dynamically -->
-                </select>
-                <br>
-
-                <!-- Add Generate Area Chart button -->
-                <button type="button" id="generateAreaChartButton" style="display: none;"
-                    onclick="generateAreaChart()">Generate Area Chart</button>
             </form>
         </div>
 

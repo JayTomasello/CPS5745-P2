@@ -86,7 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
     checkLoginStatus(); // Check login status on page load
 
     // Initially hide the symbol, month/year dropdowns, and generate graph button
-    hideLineChartOptions();
     hideRadioButtons();
 });
 
@@ -130,7 +129,7 @@ async function loadStockData() {
         .then(response => response.json())
         .then(data => {
             drawStockPricesTable(data);
-            loadStockSymbols();
+            loadAreaChartSymbols();
 
             // Count the number of rows in the data
             const rowCount = data.length;
@@ -148,9 +147,7 @@ async function loadStockData() {
         });
 }
 
-// Show Line Chart options if radio button is selected
 function showLineChartOptions() {
-    // TODO: Add existence check
     const selectedOption = document.querySelector('input[name="dataOption"]:checked');
 
     if (!selectedOption && !isLoggedIn) {
@@ -168,21 +165,51 @@ function showLineChartOptions() {
         return;
     }
 
-    // TODO: Replace with dynamically added symbol choice dropdown
+    const dataForm = document.getElementById('dataForm');
+
+    // Remove any dynamically added elements if they exist
+    const existingSymbolLabel = document.getElementById('symbolLabel');
+    const existingSymbolChoice = document.getElementById('symbolChoice');
+    const existingSymbolBreak = document.getElementById('symbolBreak');
+    if (existingSymbolLabel) existingSymbolLabel.remove();
+    if (existingSymbolChoice) existingSymbolChoice.remove();
+    if (existingSymbolBreak) existingSymbolBreak.remove();
+
     if (selectedOption.value === 'openPrice') {
-        document.getElementById('symbolChoice').style.display = 'block';
-        document.getElementById('symbolLabel').style.display = 'block';
+        // Dynamically create and add the label
+        const symbolLabel = document.createElement('label');
+        symbolLabel.id = 'symbolLabel';
+        symbolLabel.setAttribute('for', 'symbolChoice');
+        symbolLabel.textContent = 'Choose Stock Symbol:';
+        symbolLabel.style.display = 'block';
+        dataForm.appendChild(symbolLabel);
+
+        // Dynamically create and add the dropdown
+        const symbolChoice = document.createElement('select');
+        symbolChoice.id = 'symbolChoice';
+        symbolChoice.name = 'symbolChoice';
+        symbolChoice.innerHTML = '<option value="select" selected disabled>Select Stock Symbol</option>';
+        symbolChoice.style.display = 'block';
+        symbolChoice.onchange = loadAvailableMonths;
+        dataForm.appendChild(symbolChoice);
+
+        // Dynamically add a line break for spacing
+        const symbolBreak = document.createElement('br');
+        symbolBreak.id = 'symbolBreak';
+        dataForm.appendChild(symbolBreak);
+
+        // Populate the dropdown with stock symbols
+        loadLineChartSymbols();
         hideRadioButtons();
     }
 
     if (selectedOption.value === 'growthRate') {
-        alert("The Growth Rate attribute can only be graphed as an Area Chart.");
+        alert("The Growth Rate attribute can only be graphed as a Area Chart.");
         return;
     }
 }
 
 function showAreaChartOptions() {
-    // TODO: Add existence check
     const selectedOption = document.querySelector('input[name="dataOption"]:checked');
 
     if (!selectedOption && !isLoggedIn) {
@@ -200,19 +227,82 @@ function showAreaChartOptions() {
         return;
     }
 
-    if (selectedOption && selectedOption.value === 'growthRate') {
+    if (selectedOption.value === 'growthRate') {
         // Hide the radio buttons since we are focusing on Area Chart for growth rate
         hideRadioButtons();
 
-        // TODO: Replace with dynamically added symbol choice dropdowns
-        // Show the stock selection dropdowns
-        document.getElementById('stockSymbol1').style.display = 'block';
-        document.getElementById('stockSymbol1Label').style.display = 'block';
-        document.getElementById('stockSymbol2').style.display = 'block';
-        document.getElementById('stockSymbol2Label').style.display = 'block';
+        const dataForm = document.getElementById('dataForm');
 
-        // Populate stock symbol dropdowns options from the database
-        loadStockSymbols();
+        // Remove existing elements if they exist
+        const existingStockSymbol1Label = document.getElementById('stockSymbol1Label');
+        const existingStockSymbol1 = document.getElementById('stockSymbol1');
+        const existingStockSymbol2Label = document.getElementById('stockSymbol2Label');
+        const existingStockSymbol2 = document.getElementById('stockSymbol2');
+        const existingGenerateButton = document.getElementById('generateAreaChartButton');
+        const existingBreaks = document.querySelectorAll('.areaChartBreak');
+
+        if (existingStockSymbol1Label) existingStockSymbol1Label.remove();
+        if (existingStockSymbol1) existingStockSymbol1.remove();
+        if (existingStockSymbol2Label) existingStockSymbol2Label.remove();
+        if (existingStockSymbol2) existingStockSymbol2.remove();
+        if (existingGenerateButton) existingGenerateButton.remove();
+        existingBreaks.forEach(br => br.remove());
+
+        // Dynamically create and add the first stock dropdown
+        const stockSymbol1Label = document.createElement('label');
+        stockSymbol1Label.id = 'stockSymbol1Label';
+        stockSymbol1Label.textContent = 'Select First Stock:';
+        stockSymbol1Label.style.display = 'block';
+        dataForm.appendChild(stockSymbol1Label);
+
+        // Dynamically create and add the first stock dropdown
+        const stockSymbol1 = document.createElement('select');
+        stockSymbol1.id = 'stockSymbol1';
+        stockSymbol1.name = 'stockSymbol1';
+        stockSymbol1.innerHTML = '<option value="select" selected disabled>Select Stock Symbol</option>';
+        stockSymbol1.style.display = 'block';
+        dataForm.appendChild(stockSymbol1);
+
+        // Add event listener
+        stockSymbol1.addEventListener('change', checkStocksSelected);
+
+        const break1 = document.createElement('br');
+        break1.className = 'areaChartBreak';
+        dataForm.appendChild(break1);
+
+        // Dynamically create and add the second stock dropdown
+        const stockSymbol2Label = document.createElement('label');
+        stockSymbol2Label.id = 'stockSymbol2Label';
+        stockSymbol2Label.textContent = 'Select Second Stock:';
+        stockSymbol2Label.style.display = 'block';
+        dataForm.appendChild(stockSymbol2Label);
+
+        // Dynamically create and add the second stock dropdown
+        const stockSymbol2 = document.createElement('select');
+        stockSymbol2.id = 'stockSymbol2';
+        stockSymbol2.name = 'stockSymbol2';
+        stockSymbol2.innerHTML = '<option value="select" selected disabled>Select Stock Symbol</option>';
+        stockSymbol2.style.display = 'block';
+        dataForm.appendChild(stockSymbol2);
+
+        // Add event listener
+        stockSymbol2.addEventListener('change', checkStocksSelected);
+
+        const break2 = document.createElement('br');
+        break2.className = 'areaChartBreak';
+        dataForm.appendChild(break2);
+
+        // Populate stock symbol dropdowns
+        loadAreaChartSymbols();
+
+        // Dynamically add the "Generate Area Chart" button
+        const generateButton = document.createElement('button');
+        generateButton.id = 'generateAreaChartButton';
+        generateButton.type = 'button';
+        generateButton.textContent = 'Generate Area Chart';
+        generateButton.style.display = 'none'; // Hidden initially
+        generateButton.onclick = generateAreaChart;
+        dataForm.appendChild(generateButton);
     }
 
     if (selectedOption.value === 'openPrice') {
@@ -370,23 +460,45 @@ function hideRadioButtons() {
     }
 }
 
-// TODO: Replace with removal of symbol choice dropdown + month dropdown
-// Hide radio buttons initially or when not logged in
 function hideLineChartOptions() {
-    document.getElementById('symbolChoice').style.display = 'none';
-    document.getElementById('symbolLabel').style.display = 'none';
-    document.getElementById('monthChoice').style.display = 'none';
-    document.getElementById('monthLabel').style.display = 'none';
-    document.getElementById('generateGraphButton').style.display = 'none';
+    const elementsToRemove = [
+        'symbolChoice',
+        'symbolLabel',
+        'monthChoice',
+        'monthLabel',
+        'generateGraphButton'
+    ];
+
+    // Remove specified elements
+    elementsToRemove.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.remove(); // Completely remove the element from the DOM
+        }
+    });
+
+    // Remove all line breaks associated with line chart options
+    const lineBreaks = document.querySelectorAll('.lineChartBreak');
+    lineBreaks.forEach(br => br.remove());
 }
 
-// TODO: Replace with removal of symbol choice dropdown
 function hideAreaChartOptions() {
-    document.getElementById('stockSymbol1').style.display = 'none';
-    document.getElementById('stockSymbol1Label').style.display = 'none';
-    document.getElementById('stockSymbol2').style.display = 'none';
-    document.getElementById('stockSymbol2Label').style.display = 'none';
-    document.getElementById('generateAreaChartButton').style.display = 'none';
+    const elementsToRemove = [
+        'stockSymbol1Label',
+        'stockSymbol1',
+        'stockSymbol2Label',
+        'stockSymbol2',
+        'generateAreaChartButton',
+    ];
+
+    // Remove all specified elements and associated breaks
+    elementsToRemove.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.remove();
+    });
+
+    const existingBreaks = document.querySelectorAll('.areaChartBreak');
+    existingBreaks.forEach(br => br.remove());
 }
 
 // Function to show a message if the user tries to view charts without login/dataset
@@ -515,19 +627,38 @@ function drawStockPricesTable(stockPrices, pageSize = 20) {
     });
 }
 
-// TODO: Split function to load the stock symbol dropdowns for the line and area charts separately
-// Function to load all the available stock symbols for the line and area charts
-function loadStockSymbols() {
-    // Fetch available stock symbols and populate the dropdowns
+// Function to load stock symbols for the line chart dropdown
+function loadLineChartSymbols() {
     fetch('get-stock-symbols.php')
         .then(response => response.json())
         .then(symbols => {
             const symbolChoice = document.getElementById('symbolChoice');
+
+            // Clear previous options and add the default "select" option
+            symbolChoice.innerHTML = '<option value="select" selected disabled>Select Stock Symbol</option>';
+
+            // Populate the dropdown with stock symbols
+            symbols.forEach(symbol => {
+                const option = document.createElement('option');
+                option.value = symbol;
+                option.textContent = symbol;
+                symbolChoice.appendChild(option); // Line Chart dropdown
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching stock symbols for line chart:', error);
+        });
+}
+
+// Function to load stock symbols for the area chart dropdowns
+function loadAreaChartSymbols() {
+    fetch('get-stock-symbols.php')
+        .then(response => response.json())
+        .then(symbols => {
             const symbolSelect1 = document.getElementById('stockSymbol1');
             const symbolSelect2 = document.getElementById('stockSymbol2');
 
             // Clear previous options and add the default "select" option
-            symbolChoice.innerHTML = '<option value="select" selected disabled>Select Stock Symbol</option>';
             symbolSelect1.innerHTML = '<option value="select" selected disabled>Select Stock Symbol</option>';
             symbolSelect2.innerHTML = '<option value="select" selected disabled>Select Stock Symbol</option>';
 
@@ -535,7 +666,6 @@ function loadStockSymbols() {
             symbols.forEach(symbol => {
                 const option1 = document.createElement('option');
                 const option2 = document.createElement('option');
-                const option3 = document.createElement('option');
 
                 option1.value = symbol;
                 option1.textContent = symbol;
@@ -543,17 +673,12 @@ function loadStockSymbols() {
                 option2.value = symbol;
                 option2.textContent = symbol;
 
-                option3.value = symbol;
-                option3.textContent = symbol;
-
-                // Append the options to the respective dropdowns
-                symbolChoice.appendChild(option1); // Line Chart dropdown
-                symbolSelect1.appendChild(option2); // Area Chart first stock
-                symbolSelect2.appendChild(option3); // Area Chart second stock
+                symbolSelect1.appendChild(option1); // Area Chart first stock
+                symbolSelect2.appendChild(option2); // Area Chart second stock
             });
         })
         .catch(error => {
-            console.error('Error fetching stock symbols:', error);
+            console.error('Error fetching stock symbols for area chart:', error);
         });
 }
 
@@ -564,47 +689,107 @@ function loadAvailableMonths() {
     fetch(`get-available-months.php?symbol=${selectedSymbol}`)
         .then(response => response.json())
         .then(months => {
-            const monthSelect = document.getElementById('monthChoice');
-            monthSelect.innerHTML = ''; // Clear previous options
+            const dataForm = document.getElementById('dataForm');
 
+            // Remove existing monthChoice, monthLabel, and their associated line breaks
+            const existingMonthLabel = document.getElementById('monthLabel');
+            const existingMonthChoice = document.getElementById('monthChoice');
+            const existingMonthBreak = document.getElementById('monthBreak');
+            if (existingMonthLabel) existingMonthLabel.remove();
+            if (existingMonthChoice) existingMonthChoice.remove();
+            if (existingMonthBreak) existingMonthBreak.remove();
+
+            // Dynamically create and add the label
+            const monthLabel = document.createElement('label');
+            monthLabel.id = 'monthLabel';
+            monthLabel.setAttribute('for', 'monthChoice');
+            monthLabel.textContent = 'Choose Year-Month:';
+            monthLabel.style.display = 'block';
+            dataForm.appendChild(monthLabel);
+
+            // Dynamically create and add the dropdown
+            const monthChoice = document.createElement('select');
+            monthChoice.id = 'monthChoice';
+            monthChoice.name = 'monthChoice';
+            monthChoice.style.display = 'block';
+            dataForm.appendChild(monthChoice);
+
+            // Dynamically add a line break
+            const monthBreak = document.createElement('br');
+            monthBreak.id = 'monthBreak';
+            dataForm.appendChild(monthBreak);
+
+            // Populate the dropdown with available months
             const defaultOption = document.createElement('option');
             defaultOption.value = 'select';
             defaultOption.textContent = 'Select Year-Month';
             defaultOption.selected = true;
             defaultOption.disabled = true;
-            monthSelect.appendChild(defaultOption);
+            monthChoice.appendChild(defaultOption);
 
             months.forEach(month => {
                 const option = document.createElement('option');
                 option.value = month;
                 option.textContent = month;
-                monthSelect.appendChild(option);
+                monthChoice.appendChild(option);
             });
 
-            // Show the month/year dropdown and label
-            document.getElementById('monthChoice').style.display = 'block';
-            document.getElementById('monthLabel').style.display = 'block';
+            // Add event listener to month choice dropdown
+            monthChoice.addEventListener('change', showGenerateGraphButton);
 
-            // Initially hide the "Generate Graph" button
-            document.getElementById('generateGraphButton').style.display = 'none';
+            // Hide the "Generate Graph" button initially
+            const generateGraphButton = document.getElementById('generateGraphButton');
+            if (generateGraphButton) {
+                generateGraphButton.style.display = 'none';
+            }
         })
         .catch(error => {
             console.error('Error fetching available months:', error);
         });
-
-    // Add event listener to month choice dropdown
-    document.getElementById('monthChoice').addEventListener('change', showGenerateGraphButton);
 }
 
 function showGenerateGraphButton() {
-    const symbolChoice = document.getElementById('symbolChoice').value;
-    const monthChoice = document.getElementById('monthChoice').value;
+    const symbolChoiceElement = document.getElementById('symbolChoice');
+    const monthChoiceElement = document.getElementById('monthChoice');
 
-    // Ensure both symbol and month are selected and not default before showing the button
+    // Ensure elements exist before proceeding
+    if (!symbolChoiceElement || !monthChoiceElement) {
+        console.error('Missing required elements: symbolChoice or monthChoice');
+        return;
+    }
+
+    const symbolChoice = symbolChoiceElement.value;
+    const monthChoice = monthChoiceElement.value;
+
+    // Ensure both symbol and month are selected and not default
     if (symbolChoice !== "select" && monthChoice !== "select") {
-        document.getElementById('generateGraphButton').style.display = 'block';
+        let generateGraphButton = document.getElementById('generateGraphButton');
+
+        // Dynamically add the button if it doesn't exist
+        if (!generateGraphButton) {
+            const dataForm = document.getElementById('dataForm');
+
+            generateGraphButton = document.createElement('button');
+            generateGraphButton.id = 'generateGraphButton';
+            generateGraphButton.type = 'button';
+            generateGraphButton.textContent = 'Generate Line Graph';
+            generateGraphButton.style.display = 'block'; // Ensure it's visible
+            generateGraphButton.onclick = generateGraph;
+
+            // Append the button after the monthChoice dropdown
+            dataForm.appendChild(generateGraphButton);
+        } else {
+            // Move the button to ensure it's positioned correctly
+            const dataForm = document.getElementById('dataForm');
+            dataForm.appendChild(generateGraphButton);
+            generateGraphButton.style.display = 'block';
+        }
     } else {
-        document.getElementById('generateGraphButton').style.display = 'none';
+        // Hide the button if conditions are not met
+        const generateGraphButton = document.getElementById('generateGraphButton');
+        if (generateGraphButton) {
+            generateGraphButton.style.display = 'none';
+        }
     }
 }
 
@@ -801,24 +986,36 @@ function clearTablesAndCharts() {
 
 // Function to clear data selection area
 function clearDataSelection() {
-    const symbolChoice = document.getElementById('symbolChoice');
-    const monthChoice = document.getElementById('monthChoice');
-    const generateGraphButton = document.getElementById('generateGraphButton');
+    // List of element IDs to clear
+    const elementsToClear = ['symbolChoice', 'monthChoice'];
 
     // Clear and hide the data selection area
-    symbolChoice.innerHTML = '';
-    monthChoice.innerHTML = '';
+    elementsToClear.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.innerHTML = ''; // Clear content
+            element.style.display = 'none'; // Hide element
+        }
+    });
 
-    // Hide the data selection elements
-    symbolChoice.style.display = 'none';
-    monthChoice.style.display = 'none';
-    document.getElementById('symbolLabel').style.display = 'none';
-    document.getElementById('monthLabel').style.display = 'none';
+    // List of labels to hide
+    const labelsToHide = ['symbolLabel', 'monthLabel'];
+    labelsToHide.forEach(id => {
+        const label = document.getElementById(id);
+        if (label) {
+            label.style.display = 'none'; // Hide label
+        }
+    });
+
+    // Hide the Generate Graph button if it exists
+    const generateGraphButton = document.getElementById('generateGraphButton');
+    if (generateGraphButton) {
+        generateGraphButton.style.display = 'none';
+    }
+
+    // Hide other options
     hideRadioButtons();
     hideAreaChartOptions();
-
-    // Hide the Generate Graph button
-    generateGraphButton.style.display = 'none';
 }
 
 // Function to generate an area chart based on user's selection of 2 stock symbols
@@ -843,20 +1040,25 @@ function generateAreaChart() {
     displayMessage(`Area chart successfully generated for ${stock1} and ${stock2}.`);
 }
 
-// Check if two stocks are selected before showing the "Generate Area Chart" button
-document.getElementById('stockSymbol1').addEventListener('change', checkStocksSelected);
-document.getElementById('stockSymbol2').addEventListener('change', checkStocksSelected);
-
-// TODO: Replace with check for element existence
 function checkStocksSelected() {
-    const stock1 = document.getElementById('stockSymbol1').value;
-    const stock2 = document.getElementById('stockSymbol2').value;
+    // Check if the elements exist
+    const stockSymbol1Element = document.getElementById('stockSymbol1');
+    const stockSymbol2Element = document.getElementById('stockSymbol2');
+    const generateButton = document.getElementById('generateAreaChartButton');
 
-    // Only show the button if both stock selections are not the default "select" option and they are different
-    if (stock1 !== 'select' && stock2 !== 'select' && stock1 !== stock2) {
-        document.getElementById('generateAreaChartButton').style.display = 'block';
+    if (!stockSymbol1Element || !stockSymbol2Element || !generateButton) {
+        console.error('Required elements are missing: stockSymbol1, stockSymbol2, or generateAreaChartButton');
+        return;
+    }
+
+    const stock1 = stockSymbol1Element.value;
+    const stock2 = stockSymbol2Element.value;
+
+    // Ensure both stocks are selected, are not default, and are different
+    if (stock1 && stock2 && stock1 !== 'select' && stock2 !== 'select' && stock1 !== stock2) {
+        generateButton.style.display = 'block';
     } else {
-        document.getElementById('generateAreaChartButton').style.display = 'none';
+        generateButton.style.display = 'none';
     }
 }
 
