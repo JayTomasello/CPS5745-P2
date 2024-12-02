@@ -434,46 +434,84 @@ document.addEventListener('DOMContentLoaded', () => {
     hideLineChartOptions();
 });
 
-// OPTIMIZE: Attempt to replace with JS DataTable
-function drawStockPricesTable(stockPrices) {
-    google.charts.load('current', {
-        packages: ['table']
+function drawStockPricesTable(stockPrices, pageSize = 20) {
+    console.log("Rendering Stock Prices DataTable with page size:", pageSize);
+
+    const tableDiv = document.getElementById('table');
+    tableDiv.innerHTML = '';
+
+    // Create table
+    const table = document.createElement('table');
+    table.id = 'dataTable';
+    table.classList.add('display');
+    table.style.width = '100%';
+    tableDiv.appendChild(table);
+
+    const headers = [
+        { display: 'ID', key: 'id' },
+        { display: 'Symbol', key: 'symbol' },
+        { display: 'Date', key: 'date' },
+        { display: 'Open', key: 'open' },
+        { display: 'High', key: 'high' },
+        { display: 'Low', key: 'low' },
+        { display: 'Close', key: 'close' },
+        { display: 'Volume', key: 'volume' },
+        { display: 'Adjusted Close', key: 'adj_close' }
+    ];
+
+    // Step 1: Group percent changes by stock symbol
+    const percentChangesBySymbol = {};
+    stockPrices.forEach(stock => {
+        if (stock.open > 0) { // Avoid division by zero
+            const percentChange = Math.abs((stock.close - stock.open) / stock.open) * 100;
+            if (!percentChangesBySymbol[stock.symbol]) {
+                percentChangesBySymbol[stock.symbol] = [];
+            }
+            percentChangesBySymbol[stock.symbol].push(percentChange);
+        }
     });
-    google.charts.setOnLoadCallback(function () {
-        const googleData = new google.visualization.DataTable();
-        googleData.addColumn('number', 'ID');
-        googleData.addColumn('string', 'Symbol');
-        googleData.addColumn('string', 'Date');
-        googleData.addColumn('number', 'Open');
-        googleData.addColumn('number', 'High');
-        googleData.addColumn('number', 'Low');
-        googleData.addColumn('number', 'Close');
-        googleData.addColumn('number', 'Volume');
-        googleData.addColumn('number', 'Adjusted Close');
 
-        stockPrices.forEach(stock => {
-            googleData.addRow([
-                stock.id,
-                stock.symbol,
-                stock.date,
-                stock.open,
-                stock.high,
-                stock.low,
-                stock.close,
-                stock.volume,
-                stock.adj_close
-            ]);
-        });
+    // Step 2: Calculate IQR and outlier threshold for each stock symbol
+    const thresholdsBySymbol = {};
+    for (const [symbol, percentChanges] of Object.entries(percentChangesBySymbol)) {
+        const sortedChanges = percentChanges.sort((a, b) => a - b);
+        const q1 = sortedChanges[Math.floor((sortedChanges.length / 4))];
+        const q3 = sortedChanges[Math.floor((sortedChanges.length * 3) / 4)];
+        const iqr = q3 - q1;
+        const outlierThreshold = q3 + 1.5 * iqr;
+        thresholdsBySymbol[symbol] = outlierThreshold;
+    }
 
-        const table = new google.visualization.Table(document.getElementById('table'));
-        table.draw(googleData, {
-            showRowNumber: true,
-            width: '100%',
-            height: 'auto',
-            page: 'enable',
-            pageSize: 20
-        });
+    console.log('Outlier thresholds by symbol:', thresholdsBySymbol);
 
+    // Step 3: Highlight rows with percent changes > outlierThreshold for the specific stock symbol
+    $('#dataTable').DataTable({
+        destroy: true,
+        data: stockPrices,
+        columns: headers.map(header => ({
+            title: header.display,
+            data: header.key
+        })),
+        rowCallback: function (row, data) {
+            if (data.open > 0) { // Avoid division by zero
+                const percentChange = Math.abs((data.close - data.open) / data.open) * 100;
+                const threshold = thresholdsBySymbol[data.symbol];
+                if (percentChange > threshold) {
+                    // Add custom styling for outlier rows
+                    $(row).css('background-color', '#ffff71');  // Light yellow background
+                    $(row).css('color', '#8b0000');             // Dark red text
+                }
+            }
+        },
+        deferRender: true,
+        pageLength: pageSize,
+        responsive: true,
+        dom: 'Bfrtip',
+        buttons: ['copy', 'csv', 'excel', 'pdf'],
+        paging: true,
+        lengthChange: true,
+        searching: true,
+        order: [[0, 'asc']]
     });
 }
 
