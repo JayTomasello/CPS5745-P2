@@ -51,7 +51,7 @@ function connectToDB() {
                 document.getElementById('password').addEventListener('keypress', function (event) {
                     if (event.key === 'Enter') {
                         event.preventDefault(); // Prevent form submission behavior
-                        submitLogin(); // Trigger login submission
+                        submitLogin();          // Trigger login submission
                     }
                 });
 
@@ -79,6 +79,16 @@ function checkLoginStatus() {
             }
         })
         .catch(error => console.error('Error checking login status:', error));
+}
+
+// Function to determine if stock data has been loaded by checking the table
+function ifDataLoaded() {
+    const table = document.getElementById('dataTable'); // Check for the dataTable element
+    if (!table) {
+        return false;
+    } else {
+        return true;
+    }
 }
 
 // Call checkLoginStatus when the page loads
@@ -129,12 +139,24 @@ async function loadStockData() {
         .then(response => response.json())
         .then(data => {
             drawStockPricesTable(data);
-            loadAreaChartSymbols();
 
             // Count the number of rows in the data
             const rowCount = data.length;
 
-            displayMessage(`US Stock Prices data successfully loaded - ${rowCount} records`);
+            // Create message content with a link to view outlier thresholds
+            const messageContent = `
+                US Stock Prices data successfully loaded - ${rowCount} records. 
+                <br><a href="#" id="viewOutlierThresholdsLink">Current Outlier Thresholds</a>
+            `;
+
+            // Display the message
+            displayMessage(messageContent);
+
+            // Add event listener to the link for viewing outlier thresholds
+            document.getElementById('viewOutlierThresholdsLink').addEventListener('click', (event) => {
+                event.preventDefault();     // Prevent default anchor behavior
+                viewOutlierThresholds();    // Show the modal
+            });
 
             isDataLoaded = true;
 
@@ -147,20 +169,22 @@ async function loadStockData() {
         });
 }
 
-function showLineChartOptions() {
+async function showLineChartOptions() {
     const selectedOption = document.querySelector('input[name="dataOption"]:checked');
+    const loggedIn = await isUserLoggedIn(); // Check login status asynchronously
+    const dataLoaded = ifDataLoaded();
 
-    if (!selectedOption && !isLoggedIn) {
+    if (!selectedOption && !loggedIn) {
         alert("Please login and load a dataset to use the View options.");
         return;
     }
 
-    if (!selectedOption && isLoggedIn && !isDataLoaded) {
+    if (!selectedOption && loggedIn && !dataLoaded) {
         alert("Please load a dataset to use the View options.");
         return;
     }
 
-    if (!selectedOption && isLoggedIn) {
+    if (!selectedOption && loggedIn) {
         alert("Please select an option (Open Price or Growth Rate).");
         return;
     }
@@ -209,20 +233,22 @@ function showLineChartOptions() {
     }
 }
 
-function showAreaChartOptions() {
+async function showAreaChartOptions() {
     const selectedOption = document.querySelector('input[name="dataOption"]:checked');
+    const loggedIn = await isUserLoggedIn(); // Check login status asynchronously
+    const dataLoaded = ifDataLoaded();
 
-    if (!selectedOption && !isLoggedIn) {
+    if (!selectedOption && !loggedIn) {
         alert("Please login and load a dataset to use the View options.");
         return;
     }
 
-    if (!selectedOption && isLoggedIn && !isDataLoaded) {
+    if (!selectedOption && loggedIn && !dataLoaded) {
         alert("Please load a dataset to use the View options.");
         return;
     }
 
-    if (!selectedOption && isLoggedIn) {
+    if (!selectedOption && loggedIn) {
         alert("Please select an option (Open Price or Growth Rate).");
         return;
     }
@@ -327,75 +353,226 @@ function fetchYearlyGrowth(stock1, stock2) {
         .catch(error => console.error('Error fetching growth data:', error));
 }
 
-function drawAreaChart(growthData) {
+async function drawAreaChart(growthData) {
     const stock1 = document.getElementById('stockSymbol1').value;
     const stock2 = document.getElementById('stockSymbol2').value;
+
+    // Create slider container if not exists
+    if (!document.getElementById('sliderContainer')) {
+        const sliderContainer = document.createElement('div');
+        sliderContainer.id = 'sliderContainer';
+        sliderContainer.className = 'centered-container'; // Add this class
+        sliderContainer.innerHTML = `
+            <label for="yearRange">Adjust Year Range:</label>
+            <input type="range" id="yearRangeMin" min="0" max="100" step="1" value="0">
+            <input type="range" id="yearRangeMax" min="0" max="100" step="1" value="100">
+            <span id="rangeDisplay">All Years</span>
+        `;
+        const graphArea = document.querySelector(".graph-area");
+        graphArea.insertBefore(sliderContainer, document.getElementById('graph'));
+    }
+
+    // Create Save Preferences button if not exists
+    if (!document.getElementById('savePreferences')) {
+        const saveButton = document.createElement('button');
+        saveButton.id = 'savePreferences';
+        saveButton.textContent = 'Save Preferences';
+
+        const sliderContainer = document.getElementById('sliderContainer');
+        sliderContainer.appendChild(saveButton);
+    }
 
     google.charts.load('current', {
         packages: ['corechart']
     });
-    google.charts.setOnLoadCallback(() => {
-        const data = new google.visualization.DataTable();
 
-        // Use the stock symbols for the column labels
-        data.addColumn('string', 'Year');
-        data.addColumn('number', stock1); // Stock 1 symbol as the label
-        data.addColumn('number', stock2); // Stock 2 symbol as the label
+    google.charts.setOnLoadCallback(async () => {
+        try {
+            const uid = await getUserID();
+            const login = await getUserLogin();
 
-        console.log('Received growth data:', growthData);
-
-        // Add rows to the chart data
-        growthData.forEach(row => {
-            const year = String(row.year); // Ensure the year is a string
-            const stock1Growth = parseFloat(row.stock1_growth); // Ensure it's a number
-            const stock2Growth = parseFloat(row.stock2_growth); // Ensure it's a number
-
-            if (!isNaN(stock1Growth) && !isNaN(stock2Growth)) {
-                data.addRow([year, stock1Growth, stock2Growth]);
-            } else {
-                console.error('Invalid data for year:', year, stock1Growth, stock2Growth);
+            if (!uid || !login) {
+                console.error("Failed to fetch user information.");
+                return;
             }
-        });
 
-        const options = {
-            title: 'Yearly Growth Comparison',
-            hAxis: {
-                title: 'Year'
-            },
-            vAxis: {
-                title: 'Growth Rate (%)'
-            },
-            isStacked: false,
-            areaOpacity: 0.4,
-            colors: ['#1b9e77', '#d95f02'],
-            legend: {
-                position: 'bottom'
-            },
-            height: 600 // Adjust height of the chart
-        };
+            const years = growthData.map(row => parseInt(row.year, 10));
+            const minYear = Math.min(...years);
+            const maxYear = Math.max(...years);
 
-        const chart = new google.visualization.AreaChart(document.getElementById('graph'));
-        chart.draw(data, options);
+            // Set slider default values based on growthData
+            document.getElementById('yearRangeMin').min = minYear;
+            document.getElementById('yearRangeMin').max = maxYear;
+            document.getElementById('yearRangeMin').value = minYear;
+
+            document.getElementById('yearRangeMax').min = minYear;
+            document.getElementById('yearRangeMax').max = maxYear;
+            document.getElementById('yearRangeMax').value = maxYear;
+
+            document.getElementById('rangeDisplay').textContent = `Years: ${minYear} - ${maxYear}`;
+
+            // Load user preferences
+            const preferences = await loadUserPreferences(uid, stock1, stock2);
+            console.log("Preferences loaded:", preferences);
+
+            if (preferences) {
+                console.log("Preferences exist:", preferences);
+                const savedMin = parseInt(preferences.slider_low_value, 10);
+                const savedMax = parseInt(preferences.slider_high_value, 10);
+
+                // Apply saved preferences
+                document.getElementById('yearRangeMin').value = savedMin;
+                document.getElementById('yearRangeMax').value = savedMax;
+
+                console.log("Slider values after applying preferences:");
+                console.log("Min slider:", document.getElementById('yearRangeMin').value);
+                console.log("Max slider:", document.getElementById('yearRangeMax').value);
+
+                // Update chart
+                updateChart(savedMin, savedMax);
+            } else {
+                console.log("No preferences found; defaulting to full range.");
+                updateChart(minYear, maxYear);
+            }
+
+            const saveButton = document.getElementById('savePreferences');
+
+            // Remove all listeners by cloning and replacing the button
+            const newSaveButton = saveButton.cloneNode(true);
+            saveButton.parentNode.replaceChild(newSaveButton, saveButton);
+
+            // Attach the correct event listener
+            newSaveButton.addEventListener('click', () => {
+                saveUserPreferences(uid, login, stock1, stock2);
+            });
+
+            function updateChart(minRange, maxRange) {
+                console.log("Updating chart with range:", minRange, "-", maxRange);
+
+                const filteredData = growthData.filter(row => {
+                    const year = parseInt(row.year, 10);
+                    return year >= minRange && year <= maxRange;
+                });
+
+                if (filteredData.length === 0) {
+                    console.warn("No data available for the selected range:", minRange, "-", maxRange);
+                }
+
+                const filteredChartData = new google.visualization.DataTable();
+                filteredChartData.addColumn('string', 'Year');
+                filteredChartData.addColumn('number', stock1);
+                filteredChartData.addColumn('number', stock2);
+
+                filteredData.forEach(row => {
+                    const year = String(row.year);
+                    const stock1Growth = parseFloat(row.stock1_growth);
+                    const stock2Growth = parseFloat(row.stock2_growth);
+
+                    if (!isNaN(stock1Growth) && !isNaN(stock2Growth)) {
+                        filteredChartData.addRow([year, stock1Growth, stock2Growth]);
+                    }
+                });
+
+                const options = {
+                    title: 'Yearly Growth Comparison',
+                    hAxis: { title: 'Year' },
+                    vAxis: { title: 'Growth Rate (%)' },
+                    isStacked: false,
+                    areaOpacity: 0.4,
+                    colors: ['#1b9e77', '#d95f02'],
+                    legend: { position: 'bottom' },
+                    height: 600
+                };
+
+                const chart = new google.visualization.AreaChart(document.getElementById('graph'));
+                chart.draw(filteredChartData, options);
+
+                document.getElementById('rangeDisplay').textContent = `Years: ${minRange} - ${maxRange}`;
+            }
+
+            // Attach slider listeners
+            document.getElementById('yearRangeMin').addEventListener('input', () => {
+                const minRange = parseInt(document.getElementById('yearRangeMin').value, 10);
+                const maxRange = parseInt(document.getElementById('yearRangeMax').value, 10);
+                updateChart(minRange, maxRange);
+            });
+
+            document.getElementById('yearRangeMax').addEventListener('input', () => {
+                const minRange = parseInt(document.getElementById('yearRangeMin').value, 10);
+                const maxRange = parseInt(document.getElementById('yearRangeMax').value, 10);
+                updateChart(minRange, maxRange);
+            });
+        } catch (error) {
+            console.error("Error in chart setup:", error);
+        }
     });
-    // Create a new div element to display the information
+
+    // Display calculation info if not already present
     const existingInfoDiv = document.getElementById("calculationInfo");
     if (!existingInfoDiv) {
-        // Create a new div element with an id
         const infoDiv = document.createElement("div");
-        infoDiv.id = "calculationInfo"; // Assign an id for easy removal
+        infoDiv.id = "calculationInfo";
         infoDiv.innerHTML = `
             <h2><strong>Growth Rate Equation:</strong></h2> 
-            <p>((Last Closing Price of the Year - First Closing Price of the Year) / First Closing Price of the Year) * 100
-            </p>`;
-
-        // Append the infoDiv after the stock chart
+            <p>((Last Closing Price of the Year - First Closing Price of the Year) / First Closing Price of the Year) * 100</p>`;
         const graphArea = document.querySelector(".graph-area");
         graphArea.appendChild(infoDiv);
     }
 }
 
+async function loadUserPreferences(uid, stock1, stock2) {
+    try {
+        const response = await fetch(`get_preferences.php?uid=${uid}&stock1=${stock1}&stock2=${stock2}`);
+        const data = await response.json();
+        if (data.status === 'success') {
+            console.log("Loaded preferences:", data.preferences);
+            return data.preferences;
+        } else {
+            console.warn("No preferences found for user:", data.message);
+            return null;
+        }
+    } catch (error) {
+        console.error("Error loading user preferences:", error);
+        return null;
+    }
+}
+
+function saveUserPreferences(uid, login, stock1, stock2) {
+    const sliderLow = document.getElementById('yearRangeMin').value;
+    const sliderHigh = document.getElementById('yearRangeMax').value;
+
+    const dataToSend = {
+        uid: uid,
+        login: login,
+        stock_symbol_a: stock1,
+        stock_symbol_b: stock2,
+        slider_low_value: sliderLow,
+        slider_high_value: sliderHigh,
+    };
+
+    console.log("Saving preferences data:", dataToSend);
+
+    fetch('save_preferences.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSend),
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            if (data.status === 'success') {
+                alert('Preferences saved successfully for ' + stock1 + ' and ' + stock2);
+            } else {
+                console.error('Error saving preferences:', data.message);
+            }
+        })
+        .catch((error) => console.error('Error:', error));
+}
+
 function showRadioButtons() {
-    if (isDataLoaded) {
+    const dataLoaded = ifDataLoaded();
+    if (dataLoaded) {
         const form = document.getElementById('dataForm');
 
         // Create and append the radio buttons
@@ -492,27 +669,19 @@ function hideAreaChartOptions() {
         'stockSymbol2Label',
         'stockSymbol2',
         'generateAreaChartButton',
+        'sliderContainer',      // Add slider container
+        'savePreferences',      // Add save preferences button
     ];
 
-    // Remove all specified elements and associated breaks
+    // Remove all specified elements
     elementsToRemove.forEach(id => {
         const element = document.getElementById(id);
         if (element) element.remove();
     });
 
+    // Remove associated breaks
     const existingBreaks = document.querySelectorAll('.areaChartBreak');
     existingBreaks.forEach(br => br.remove());
-}
-
-// Function to show a message if the user tries to view charts without login/dataset
-function handleViewOptions() {
-    if (!isLoggedIn) {
-        alert("Please login and load a dataset to use the View options.");
-        return;
-    }
-    if (!isDataLoaded) {
-        alert("Please load a dataset to use the View options.");
-    }
 }
 
 function showLoginInfo() {
@@ -529,6 +698,40 @@ function showLoginInfo() {
         .catch(error => console.error('Error fetching login info:', error));
 }
 
+async function getUserID() {
+    try {
+        const response = await fetch('login_info.php');
+        const data = await response.json();
+        if (data.status === 'error') {
+            alert(data.message);
+            return null;
+        } else {
+            const userID = `${data.uid}`;
+            return userID;
+        }
+    } catch (error) {
+        console.error('Error fetching login info:', error);
+        return null;
+    }
+}
+
+async function getUserLogin() {
+    try {
+        const response = await fetch('login_info.php');
+        const data = await response.json();
+        if (data.status === 'error') {
+            alert(data.message);
+            return null;
+        } else {
+            const userLogin = `${data.login}`;
+            return userLogin;
+        }
+    } catch (error) {
+        console.error('Error fetching login info:', error);
+        return null;
+    }
+}
+
 function showDeveloperInfo() {
     const devInfo = `Name: Joseph Tomasello\nClass ID: CPS*5745*02\nProject Date (Part 2): 12/04/2024`;
     alert(devInfo);
@@ -542,6 +745,8 @@ function showBrowserOSInfo() {
 
     alert(fullInfo);
 }
+
+let thresholdsBySymbol = {}; // Declare a global variable to store thresholds
 
 function drawStockPricesTable(stockPrices, pageSize = 20) {
     console.log("Rendering Stock Prices DataTable with page size:", pageSize);
@@ -581,7 +786,7 @@ function drawStockPricesTable(stockPrices, pageSize = 20) {
     });
 
     // Step 2: Calculate IQR and outlier threshold for each stock symbol
-    const thresholdsBySymbol = {};
+    thresholdsBySymbol = {}; // Update the global variable
     for (const [symbol, percentChanges] of Object.entries(percentChangesBySymbol)) {
         const sortedChanges = percentChanges.sort((a, b) => a - b);
         const q1 = sortedChanges[Math.floor((sortedChanges.length / 4))];
@@ -874,15 +1079,15 @@ function displayMessage(content) {
 
     // Create the timestamp element
     const timeSpan = document.createElement('span');
-    timeSpan.dataset.timestamp = timestamp; // Store the raw timestamp
-    timeSpan.textContent = new Date(timestamp).toLocaleString(); // Display formatted
+    timeSpan.dataset.timestamp = timestamp;                         // Store the raw timestamp
+    timeSpan.textContent = new Date(timestamp).toLocaleString();    // Display formatted
     timeSpan.style.fontWeight = 'bold';
-    timeSpan.style.color = 'green'; // Initially set the color to green
+    timeSpan.style.color = 'green';                                 // Initially set the color to green
     timeSpan.style.display = 'block';
 
     // Create the message element
     const messageText = document.createElement('p');
-    messageText.textContent = content;
+    messageText.innerHTML = content; // Allow HTML content for the link
     messageText.style.margin = '5px 0 0';
 
     // Append the timestamp and message to the container
@@ -896,13 +1101,133 @@ function displayMessage(content) {
     messageDiv.scrollTop = messageDiv.scrollHeight;
 }
 
+function createModal() {
+    // Check if the modal already exists
+    if (document.getElementById('outlierThresholdsModal')) return;
+
+    // Create the modal container
+    const modal = document.createElement('div');
+    modal.id = 'outlierThresholdsModal';
+    modal.style.display = 'none';       // Initially hidden
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    modal.style.zIndex = '1000';
+    modal.style.overflow = 'hidden';    // Ensure no content overflows outside the modal
+
+    // Create the content area
+    const content = document.createElement('div');
+    content.style.backgroundColor = 'white';
+    content.style.position = 'absolute';
+    content.style.top = '10%';                      // Start the modal 10% from the top of the viewport
+    content.style.left = '50%';                     // Center horizontally
+    content.style.transform = 'translate(-50%, 0)'; // Center horizontally using transform
+    content.style.padding = '20px';
+    content.style.border = '1px solid #ccc';
+    content.style.width = '80%';
+    content.style.maxHeight = '70%';                // Limit height to avoid issues on smaller screens
+    content.style.overflowY = 'auto';               // Make the content scrollable if it overflows
+
+    // Create the title
+    const title = document.createElement('h2');
+    title.textContent = 'Outlier Thresholds by Stock Symbol';
+    content.appendChild(title);
+
+    // Create the list for thresholds
+    const thresholdsList = document.createElement('ul');
+    thresholdsList.id = 'thresholdsList';
+    content.appendChild(thresholdsList);
+
+    // Create the close button
+    const closeButton = document.createElement('button');
+    closeButton.textContent = 'Close';
+    closeButton.style.marginTop = '10px';
+    closeButton.onclick = closeModal;
+    content.appendChild(closeButton);
+
+    // Create the title
+    const processText = document.createElement('h4');
+    processText.textContent = 'Outlier Threshold Calculation Process';
+    content.appendChild(processText);
+
+    // Create a list to hold the steps
+    const explanationList = document.createElement('ul');
+
+    // Step descriptions
+    const steps = [
+        'Step 1: Percent Change (%) = |(Close Price - Open Price) / Open Price| * 100',
+        'Step 2: Sort percent changes for each stock in ascending order',
+        'Step 3: Q1 = sortedChanges[|length / 4|]',
+        'Step 4: Q3 = sortedChanges[|(length * 3) / 4|]',
+        'Step 5: IQR = Q3 - Q1',
+        'Step 6: Outlier Threshold = Q3 + 1.5 * IQR'
+    ];
+
+    // Add each step as a list item
+    steps.forEach(step => {
+        const listItem = document.createElement('li');
+        listItem.textContent = step;
+        explanationList.appendChild(listItem);
+    });
+
+    // Append the list to the content area
+    content.appendChild(explanationList);
+
+    // Append content to modal
+    modal.appendChild(content);
+
+    // Append modal to the body
+    document.body.appendChild(modal);
+}
+
+function viewOutlierThresholds() {
+    // Create the modal dynamically if it doesn't exist
+    createModal();
+
+    const modal = document.getElementById('outlierThresholdsModal');
+    const thresholdsList = document.getElementById('thresholdsList');
+
+    // Clear any existing content in the list
+    thresholdsList.innerHTML = '';
+
+    // Populate the list with thresholds
+    if (!Object.keys(thresholdsBySymbol).length) {
+        const emptyMessage = document.createElement('li');
+        emptyMessage.textContent = 'No thresholds available to display.';
+        thresholdsList.appendChild(emptyMessage);
+    } else {
+        // Sort symbols alphabetically
+        const sortedSymbols = Object.keys(thresholdsBySymbol).sort();
+
+        // Iterate over sorted symbols to create list items
+        sortedSymbols.forEach(symbol => {
+            const listItem = document.createElement('li');
+            listItem.textContent = `${symbol}: ${thresholdsBySymbol[symbol].toFixed(2)}%`;
+            thresholdsList.appendChild(listItem);
+        });
+    }
+
+    // Display the modal
+    modal.style.display = 'block';
+}
+
+function closeModal() {
+    const modal = document.getElementById('outlierThresholdsModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
 // Function to monitor and update message styles
 function monitorMessages() {
     const messageDiv = document.getElementById('message');
     const timestamps = messageDiv.querySelectorAll('span'); // Select all timestamp spans
 
     timestamps.forEach((timeSpan) => {
-        const timestamp = parseInt(timeSpan.dataset.timestamp, 10); // Parse raw timestamp
+        const timestamp = parseInt(timeSpan.dataset.timestamp, 10);          // Parse raw timestamp
         const currentTime = Date.now();
         const timeDifference = (currentTime - timestamp) / (1000 * 60 * 60); // Difference in hours
 
@@ -919,9 +1244,14 @@ function monitorMessages() {
 // Set up periodic monitoring
 setInterval(monitorMessages, 60000); // Check every 1 minute
 
-function logoutDB() {
-    // Ask the user for confirmation before exiting
-    const userConfirmed = confirm("Are you sure you want to logout?");
+async function logoutDB() {
+    const loggedIn = await isUserLoggedIn(); // Check login status asynchronously
+    let userConfirmed = true;
+
+    if (loggedIn) {
+        // Ask the user for confirmation before exiting
+        userConfirmed = confirm("Are you sure you want to logout?");
+    }
 
     if (userConfirmed) {
         fetch('logout.php')
@@ -990,7 +1320,7 @@ function clearDataSelection() {
     elementsToClear.forEach(id => {
         const element = document.getElementById(id);
         if (element) {
-            element.innerHTML = ''; // Clear content
+            element.innerHTML = '';         // Clear content
             element.style.display = 'none'; // Hide element
         }
     });

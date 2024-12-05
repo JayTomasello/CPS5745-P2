@@ -120,3 +120,16 @@ input.radio {
     background-color: #f9f9f9; /* Match the background color for consistency */
     box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1); /* Optional: Add subtle shadow for depth */
 }
+
+.centered-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
