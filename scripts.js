@@ -138,29 +138,27 @@ async function loadStockData() {
     fetch('get-all-stock-prices.php')
         .then(response => response.json())
         .then(data => {
-            drawStockPricesTable(data);
+            initializeStockTableWithCheckboxFilter(data);
 
-            // Count the number of rows in the data
             const rowCount = data.length;
 
-            // Create message content with a link to view outlier thresholds
-            const messageContent = `
-                US Stock Prices data successfully loaded - ${rowCount} records. 
-                <br><a href="#" id="viewOutlierThresholdsLink">Current Outlier Thresholds</a>
-            `;
+            // Generate a unique ID for the link
+            const uniqueId = `viewOutlierThresholdsLink_${Date.now()}`;
 
-            // Display the message
+            const messageContent = `
+            US Stock Prices data successfully loaded - ${rowCount} records. 
+            <br><a href="#" id="${uniqueId}">Current Outlier Thresholds</a>
+        `;
+
             displayMessage(messageContent);
 
-            // Add event listener to the link for viewing outlier thresholds
-            document.getElementById('viewOutlierThresholdsLink').addEventListener('click', (event) => {
-                event.preventDefault();     // Prevent default anchor behavior
-                viewOutlierThresholds();    // Show the modal
+            // Add event listener to the dynamically generated link
+            document.getElementById(uniqueId).addEventListener('click', (event) => {
+                event.preventDefault(); // Prevent default anchor behavior
+                viewOutlierThresholds(); // Show the modal
             });
 
             isDataLoaded = true;
-
-            // Show the radio buttons after dataset is loaded
             showRadioButtons();
         })
         .catch(error => {
@@ -829,6 +827,141 @@ function drawStockPricesTable(stockPrices, pageSize = 20) {
     });
 }
 
+function initializeStockTableWithCheckboxFilter(stockPrices) {
+    // Create the filter dropdown dynamically
+    createCheckboxDropdown(stockPrices);
+
+    // Draw the initial table with all stock prices
+    drawStockPricesTable(stockPrices);
+
+    // Automatically update the table when checkboxes change
+    document.getElementById('checkboxDropdownContent').addEventListener('change', function () {
+        const filteredPrices = filterStockPricesByCheckbox(stockPrices);
+        drawStockPricesTable(filteredPrices);
+    });
+}
+
+function createCheckboxDropdown(stockPrices) {
+    const uniqueSymbols = [...new Set(stockPrices.map(stock => stock.symbol))];
+
+    // Create a container for the dropdown
+    const dropdownContainer = document.createElement('div');
+    dropdownContainer.id = 'checkboxDropdown';
+    dropdownContainer.style.position = 'relative';
+
+    // Create a button to toggle the dropdown visibility
+    const toggleButton = document.createElement('button');
+    toggleButton.textContent = 'Filter by Stock Symbol';
+    toggleButton.style.marginBottom = '10px';
+    dropdownContainer.appendChild(toggleButton);
+
+    // Create the dropdown content
+    const dropdownContent = document.createElement('div');
+    dropdownContent.id = 'checkboxDropdownContent';
+    dropdownContent.style.display = 'none';
+    dropdownContent.style.position = 'absolute';
+    dropdownContent.style.backgroundColor = '#f9f9f9';
+    dropdownContent.style.boxShadow = '0px 8px 16px rgba(0, 0, 0, 0.2)';
+    dropdownContent.style.padding = '10px';
+    dropdownContent.style.border = '1px solid #ccc';
+    dropdownContent.style.zIndex = '1000';
+
+    // Add an "All" checkbox
+    const allCheckboxWrapper = document.createElement('div');
+
+    const allCheckbox = document.createElement('input');
+    allCheckbox.type = 'checkbox';
+    allCheckbox.id = 'symbol_all';
+    allCheckbox.value = 'all';
+    allCheckbox.checked = true;
+
+    const allLabel = document.createElement('label');
+    allLabel.htmlFor = 'symbol_all';
+    allLabel.textContent = 'All';
+
+    allCheckboxWrapper.appendChild(allCheckbox);
+    allCheckboxWrapper.appendChild(allLabel);
+    dropdownContent.appendChild(allCheckboxWrapper);
+
+    // Add checkboxes for each symbol
+    uniqueSymbols.forEach(symbol => {
+        const checkboxWrapper = document.createElement('div');
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `symbol_${symbol}`;
+        checkbox.value = symbol;
+
+        const label = document.createElement('label');
+        label.htmlFor = `symbol_${symbol}`;
+        label.textContent = symbol;
+
+        checkboxWrapper.appendChild(checkbox);
+        checkboxWrapper.appendChild(label);
+        dropdownContent.appendChild(checkboxWrapper);
+    });
+
+    // Append the dropdown content to the container
+    dropdownContainer.appendChild(dropdownContent);
+
+    // Append the dropdown container to the filters div
+    const filtersDiv = document.getElementById('filters') || createFiltersDiv();
+    filtersDiv.appendChild(dropdownContainer);
+
+    // Toggle the dropdown visibility
+    toggleButton.addEventListener('click', function () {
+        dropdownContent.style.display = dropdownContent.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Handle "All" checkbox toggle
+    allCheckbox.addEventListener('change', function () {
+        const checkboxes = dropdownContent.querySelectorAll('input[type="checkbox"]:not(#symbol_all)');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = allCheckbox.checked;
+        });
+    });
+
+    // Handle individual checkboxes affecting "All" checkbox
+    dropdownContent.addEventListener('change', function (event) {
+        if (event.target !== allCheckbox) {
+            const checkboxes = dropdownContent.querySelectorAll('input[type="checkbox"]:not(#symbol_all)');
+            const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+            allCheckbox.checked = allChecked;
+        }
+    });
+}
+
+function filterStockPricesByCheckbox(stockPrices) {
+    const checkboxes = document.querySelectorAll('#checkboxDropdownContent input[type="checkbox"]:not(#symbol_all)');
+    const selectedSymbols = Array.from(checkboxes)
+        .filter(checkbox => checkbox.checked)
+        .map(checkbox => checkbox.value);
+
+    if (selectedSymbols.length === 0 || document.getElementById('symbol_all').checked) {
+        return stockPrices; // Show all if "All" is selected or no individual symbols are selected
+    }
+    return stockPrices.filter(stock => selectedSymbols.includes(stock.symbol));
+}
+
+function createFiltersDiv() {
+    const filtersDiv = document.createElement('div');
+    filtersDiv.id = 'filters';
+
+    // Locate the table element
+    const tableDiv = document.getElementById('table');
+
+    // Check if the tableDiv exists and has a parent node
+    if (tableDiv && tableDiv.parentNode) {
+        // Insert the filtersDiv before the tableDiv within its parent
+        tableDiv.parentNode.insertBefore(filtersDiv, tableDiv);
+    } else {
+        // If the tableDiv is not found or has no parent, append the filtersDiv to the body
+        document.body.appendChild(filtersDiv);
+    }
+
+    return filtersDiv;
+}
+
 // Function to load stock symbols for the line chart dropdown
 function loadLineChartSymbols() {
     fetch('get-stock-symbols.php')
@@ -1062,7 +1195,7 @@ function displayWelcomeMessage(message) {
     const newMessage = document.createElement('p'); // Create a new paragraph for the message
     newMessage.textContent = message;
     newMessage.style.fontWeight = 'bold';
-    messageDiv.appendChild(newMessage); // Append the new message under previous messages
+    messageDiv.appendChild(newMessage);             // Append the new message under previous messages
 }
 
 // Displays descriptive messages in the message area based on user actions and page events
@@ -1301,9 +1434,14 @@ function clearTablesAndCharts() {
     const table = document.getElementById('table');
     const graph = document.getElementById('graph');
     const infoDiv = document.getElementById("calculationInfo");
+    const filters = document.getElementById("filters");
 
     if (infoDiv) {
         infoDiv.remove(); // Remove the div if it exists
+    }
+
+    if (filters) {
+        filters.remove(); // Remove the div if it exists
     }
 
     // Clear any existing tables and charts
