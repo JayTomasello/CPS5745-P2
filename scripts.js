@@ -97,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initially hide the symbol, month/year dropdowns, and generate graph button
     hideRadioButtons();
+    clearOutlierModal();
 });
 
 // Function to check if the user is logged in and return a boolean value
@@ -842,7 +843,7 @@ function initializeStockTableWithCheckboxFilter(stockPrices) {
 }
 
 function createCheckboxDropdown(stockPrices) {
-    const uniqueSymbols = [...new Set(stockPrices.map(stock => stock.symbol))];
+    const uniqueSymbols = [...new Set(stockPrices.map(stock => stock.symbol))].sort();
 
     // Create a container for the dropdown
     const dropdownContainer = document.createElement('div');
@@ -927,6 +928,13 @@ function createCheckboxDropdown(stockPrices) {
             const checkboxes = dropdownContent.querySelectorAll('input[type="checkbox"]:not(#symbol_all)');
             const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
             allCheckbox.checked = allChecked;
+        }
+    });
+
+    // Hide the dropdown when clicking outside
+    document.addEventListener('click', function (event) {
+        if (!dropdownContainer.contains(event.target)) {
+            dropdownContent.style.display = 'none';
         }
     });
 }
@@ -1312,6 +1320,13 @@ function createModal() {
     // Append content to modal
     modal.appendChild(content);
 
+    // Close modal when clicking outside content
+    modal.addEventListener('click', function (event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+
     // Append modal to the body
     document.body.appendChild(modal);
 }
@@ -1395,6 +1410,7 @@ async function logoutDB() {
                     clearMessages();
                     clearTablesAndCharts();
                     clearDataSelection();
+                    clearOutlierModal();
                     isLoggedIn = false;
                     isDataLoaded = false;
 
@@ -1447,6 +1463,20 @@ function clearTablesAndCharts() {
     // Clear any existing tables and charts
     if (table) table.innerHTML = '';
     if (graph) graph.innerHTML = '';
+}
+
+// Function to clear the outlier modal + its content
+function clearOutlierModal() {
+    const outlierThresholdsModal = document.getElementById('outlierThresholdsModal');
+    const thresholdsList = document.getElementById('thresholdsList');
+
+    if (outlierThresholdsModal) {
+        outlierThresholdsModal.remove(); // Remove the div if it exists
+    }
+
+    if (thresholdsList) {
+        thresholdsList.remove(); // Remove the div if it exists
+    }
 }
 
 // Function to clear data selection area
