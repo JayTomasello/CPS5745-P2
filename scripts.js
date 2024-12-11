@@ -712,8 +712,9 @@ function hideAreaChartOptions() {
         'stockSymbol2Label',
         'stockSymbol2',
         'generateAreaChartButton',
-        'sliderContainer',      // Add slider container
-        'savePreferences',      // Add save preferences button
+        'sliderContainer',
+        'savePreferences',
+        'statsDisplay',
     ];
 
     // Remove all specified elements
