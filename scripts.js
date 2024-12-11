@@ -412,10 +412,7 @@ async function drawAreaChart(growthData) {
 
             // Load user preferences
             const preferences = await loadUserPreferences(uid, stock1, stock2);
-            console.log("Preferences loaded:", preferences);
-
             if (preferences) {
-                console.log("Preferences exist:", preferences);
                 const savedMin = parseInt(preferences.slider_low_value, 10);
                 const savedMax = parseInt(preferences.slider_high_value, 10);
 
@@ -423,31 +420,24 @@ async function drawAreaChart(growthData) {
                 document.getElementById('yearRangeMin').value = savedMin;
                 document.getElementById('yearRangeMax').value = savedMax;
 
-                console.log("Slider values after applying preferences:");
-                console.log("Min slider:", document.getElementById('yearRangeMin').value);
-                console.log("Max slider:", document.getElementById('yearRangeMax').value);
-
-                // Update chart
+                console.log("Applying loaded preferences:", savedMin, savedMax);
                 updateChart(savedMin, savedMax);
             } else {
-                console.log("No preferences found; defaulting to full range.");
+                console.log("No saved preferences; defaulting to full range.");
                 updateChart(minYear, maxYear);
             }
 
+            // Remove existing event listener from save button by cloning it
             const saveButton = document.getElementById('savePreferences');
-
-            // Remove all listeners by cloning and replacing the button
             const newSaveButton = saveButton.cloneNode(true);
             saveButton.parentNode.replaceChild(newSaveButton, saveButton);
 
-            // Attach the correct event listener
+            // Attach new event listener for saving preferences
             newSaveButton.addEventListener('click', () => {
                 saveUserPreferences(uid, login, stock1, stock2);
             });
 
             function updateChart(minRange, maxRange) {
-                console.log("Updating chart with range:", minRange, "-", maxRange);
-
                 const filteredData = growthData.filter(row => {
                     const year = parseInt(row.year, 10);
                     return year >= minRange && year <= maxRange;
@@ -455,12 +445,16 @@ async function drawAreaChart(growthData) {
 
                 if (filteredData.length === 0) {
                     console.warn("No data available for the selected range:", minRange, "-", maxRange);
+                    return;
                 }
 
                 const filteredChartData = new google.visualization.DataTable();
                 filteredChartData.addColumn('string', 'Year');
                 filteredChartData.addColumn('number', stock1);
                 filteredChartData.addColumn('number', stock2);
+
+                const stock1Values = [];
+                const stock2Values = [];
 
                 filteredData.forEach(row => {
                     const year = String(row.year);
@@ -469,9 +463,59 @@ async function drawAreaChart(growthData) {
 
                     if (!isNaN(stock1Growth) && !isNaN(stock2Growth)) {
                         filteredChartData.addRow([year, stock1Growth, stock2Growth]);
+                        stock1Values.push(stock1Growth);
+                        stock2Values.push(stock2Growth);
                     }
                 });
 
+                // Calculate correlation coefficient
+                function calculateCorrelation(values1, values2) {
+                    const n = values1.length;
+                    const mean1 = values1.reduce((a, b) => a + b, 0) / n;
+                    const mean2 = values2.reduce((a, b) => a + b, 0) / n;
+
+                    let numerator = 0;
+                    let denominator1 = 0;
+                    let denominator2 = 0;
+
+                    for (let i = 0; i < n; i++) {
+                        const diff1 = values1[i] - mean1;
+                        const diff2 = values2[i] - mean2;
+
+                        numerator += diff1 * diff2;
+                        denominator1 += diff1 * diff1;
+                        denominator2 += diff2 * diff2;
+                    }
+
+                    return numerator / Math.sqrt(denominator1 * denominator2);
+                }
+
+                // Calculate p-value
+                function calculatePValue(correlation, n) {
+                    const tStatistic = correlation * Math.sqrt((n - 2) / (1 - Math.pow(correlation, 2)));
+                    const degreesOfFreedom = n - 2;
+
+                    return 2 * (1 - jStat.studentt.cdf(Math.abs(tStatistic), degreesOfFreedom));
+                }
+
+                // Compute correlation and p-value
+                const correlation = calculateCorrelation(stock1Values, stock2Values);
+                const pValue = calculatePValue(correlation, stock1Values.length);
+
+                // Display correlation and statistical results
+                const statsDisplay = document.getElementById("statsDisplay") || document.createElement('div');
+                statsDisplay.id = "statsDisplay";
+                statsDisplay.innerHTML = `
+                    <p><strong>Correlation Coefficient (R):</strong> ${correlation.toFixed(2)}</p>
+                    <p><strong>R²:</strong> ${(Math.pow(correlation, 2)).toFixed(2)}</p>
+                    <p><strong>p-value:</strong> ${pValue.toFixed(4)}</p>
+                    <p><strong>Statistical Significance:</strong> ${pValue < 0.05 ? "Significant" : "Not Significant"} (α = 0.05)</p>`;
+                const graphArea = document.querySelector(".graph-area");
+                if (!document.getElementById("statsDisplay")) {
+                    graphArea.appendChild(statsDisplay);
+                }
+
+                // Draw chart
                 const options = {
                     title: 'Yearly Growth Comparison',
                     hAxis: { title: 'Year' },
